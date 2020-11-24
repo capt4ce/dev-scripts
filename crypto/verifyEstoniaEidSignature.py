@@ -52,7 +52,7 @@ vk = VerifyingKey.from_der(bytes.fromhex(publicKeyHexString))
 
 sig = bytes.fromhex(signature)
 
-print(vk.to_string())
+print(vk.curve)
 
 try:
     vk.verify(sig, message, hashfunc=hashlib.sha256)
