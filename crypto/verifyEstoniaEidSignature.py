@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.serialization import PublicFormat
 from cryptography.hazmat.primitives.serialization import Encoding
 import hashlib
 
-message = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.".encode('utf-8')
+message = "It is a long established fact that a reader will be distracted by the readable content of a page when looking at its layout. The point of using Lorem Ipsum is that it has a more-or-less normal distribution of letters, as opposed to using 'Content here, content here', making it look like readable English. Many desktop publishing packages and web page editors now use Lorem Ipsum as their default model text, and a search for 'lorem ipsum' will uncover many web sites still in their infancy. Various versions have evolved over the years, sometimes by accident, sometimes on purpose (injected humour and the like).".encode('utf-8')
 print(hashlib.sha256(message).hexdigest())
 
 # getting verifying key from public key from PEM
@@ -44,7 +44,7 @@ print(hashlib.sha256(message).hexdigest())
 # pubKey_data = cert.public_key().public_bytes(Encoding.PEM, PublicFormat.SubjectPublicKeyInfo)
 # vk = VerifyingKey.from_pem(pubKey_data)
 
-signature = '06C57BA074F7DE0B0D46F7C81E57CD183C728AF50EB96A1E5BD3D489A662A174AFD99F4E64238EF95D8433521423047B4B9E724552E398FF77FBEB2E850FCD76C91F6664EE248B542967108000E5325B6A278428218C643635118A6ACCCC4C38'
+signature = '5CCA79EC48E25601A34939B91441D6F78909EBA993568CF1CEEBA06B9326220F1DA27D6BCB34892274DB2C8D42B12DBA9EB1F18C93834A4344335C1690A80B2850DD91AD73D1F2DAA44E18539F141C3AE740843AA6DF01A848AAD51140665916'
 
 # getting verifying key from public key DER
 publicKeyHexString = "3076301006072a8648ce3d020106052b8104002203620004acf16bf960e6797993a7fd08ad4464fde0b7eefe543d119552c4d1e786dd851903afe925ac1414cefaac741c5200fa92c5f37a30a87430fc59bb543ff768a3cbc934548774b5645b2c3209b2a928c1cb7b52c2bb973690dddf7c348585907b27"
@@ -64,3 +64,4 @@ except BadSignatureError:
 r,s = util.sigdecode_string(sig,vk.curve.order)
 print('signature R: ',r)
 print('signature S: ',s)
+print('curve order: ', vk.curve.order, type(vk.curve.order))

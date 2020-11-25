@@ -7,136 +7,30 @@ import (
 	"crypto/x509"
 	"encoding/hex"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
-)
 
-type ECDSASignature struct {
-	R, S *big.Int
-}
+	"golang.org/x/crypto/sha3"
+)
 
 const (
-	publicKeyHex     = "04acf16bf960e6797993a7fd08ad4464fde0b7eefe543d119552c4d1e786dd851903afe925ac1414cefaac741c5200fa92c5f37a30a87430fc59bb543ff768a3cbc934548774b5645b2c3209b2a928c1cb7b52c2bb973690dddf7c348585907b27"
-	messageRaw       = "Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum."
-	messageHex       = "7321348c8894678447b54c888fdbc4e4b825bf4d1eb0cfb27874286a23ea9fd2"
-	signatureHex     = "06c57ba074f7de0b0d46f7c81e57cd183c728af50eb96a1e5bd3d489a662a174afd99f4e64238ef95d8433521423047b4b9e724552e398ff77fbeb2e850fcd76c91f6664ee248b542967108000e5325b6a278428218c643635118a6acccc4c38"
-	signatureRString = "1042216562530904695980748562657912478819164596514687731926287790267732122247375403785367634558258330019697369744507"
-	signatureSString = "11638818723068440459844038883977416710408940638415319804492170875859702666650399918084976194012226024185515247160376"
-	publicKeyPem     = `
------BEGIN CERTIFICATE-----
-MIIDzjCCAzCgAwIBAgIQCRxwO6tzCWdc73UTenfjrDAKBggqhkjOPQQDBDBYMQsw
-CQYDVQQGEwJFRTEbMBkGA1UECgwSU0sgSUQgU29sdXRpb25zIEFTMRcwFQYDVQRh
-DA5OVFJFRS0xMDc0NzAxMzETMBEGA1UEAwwKRVNURUlEMjAxODAeFw0xOTA1MzAw
-NjE1NDdaFw0yNDA1MjkyMTU5NTlaMHcxCzAJBgNVBAYTAkVFMSYwJAYDVQQDDB1D
-QVBPRElFQ0ksUk9CRVJUTywzNzQwNjI1MDE2MDESMBAGA1UEBAwJQ0FQT0RJRUNJ
-MRAwDgYDVQQqDAdST0JFUlRPMRowGAYDVQQFExFQTk9FRS0zNzQwNjI1MDE2MDB2
-MBAGByqGSM49AgEGBSuBBAAiA2IABKzxa/lg5nl5k6f9CK1EZP3gt+7+VD0RlVLE
-0eeG3YUZA6/pJawUFM76rHQcUgD6ksXzejCodDD8WbtUP/doo8vJNFSHdLVkWywy
-CbKpKMHLe1LCu5c2kN3ffDSFhZB7J6OCAZ4wggGaMAkGA1UdEwQCMAAwDgYDVR0P
-AQH/BAQDAgZAMEgGA1UdIARBMD8wMgYLKwYBBAGDkSEBAQQwIzAhBggrBgEFBQcC
-ARYVaHR0cHM6Ly93d3cuc2suZWUvQ1BTMAkGBwQAi+xAAQIwHQYDVR0OBBYEFI3A
-VTKnMdqw1j/upmDPfzO1AQ//MIGKBggrBgEFBQcBAwR+MHwwCAYGBACORgEBMAgG
-BgQAjkYBBDATBgYEAI5GAQYwCQYHBACORgEGATBRBgYEAI5GAQUwRzBFFj9odHRw
-czovL3NrLmVlL2VuL3JlcG9zaXRvcnkvY29uZGl0aW9ucy1mb3ItdXNlLW9mLWNl
-cnRpZmljYXRlcy8TAkVOMB8GA1UdIwQYMBaAFNmscNtffr6U+KDkvkei0DStmioS
-MGYGCCsGAQUFBwEBBFowWDAnBggrBgEFBQcwAYYbaHR0cDovL2FpYS5zay5lZS9l
-c3RlaWQyMDE4MC0GCCsGAQUFBzAChiFodHRwOi8vYy5zay5lZS9lc3RlaWQyMDE4
-LmRlci5jcnQwCgYIKoZIzj0EAwQDgYsAMIGHAkIBICcDVSlZ2I/+A5SGrS1mNpQy
-W8Amz1EUslE5PkQ5kWlEId2jNfXTa48GiZYDE8sOBDu36xd+LH2N+EtJj2/SubAC
-QXsj+LaIjP1Cu3JccZ0+132dJxf3PhanZ4cmp2Q4Qmta0hQ7NlV0tl+MFFJASU0c
-vGGclxtDy+1uDwnqtDB5wYbg
------END CERTIFICATE-----`
+	publicKeyHex = "04acf16bf960e6797993a7fd08ad4464fde0b7eefe543d119552c4d1e786dd851903afe925ac1414cefaac741c5200fa92c5f37a30a87430fc59bb543ff768a3cbc934548774b5645b2c3209b2a928c1cb7b52c2bb973690dddf7c348585907b27"
+	messageRaw   = "testing verification signature"
+	signatureHex = "00B87DCEC8616E0BC01D84A903B77E4BD70F7812378DDD90EF2F7253B011E49E49E8F4544E5F470227FE406E26B4A104BEDE622BC94689381C07E651CA53C1EB55160B6DB55B4E075C1289BE791CB485751E135B010DC52FE146CAB4ED31FF3F"
 )
 
-var (
-	err            error
-	signatureByte  []byte
-	publicKeyBytes []byte
-	messsageByte   []byte
-	publicKey      ecdsa.PublicKey
-)
+func hashMessage(message string) []byte {
+	messsageByte := []byte(message)
 
-func init() {
-	publicKeyBytes, err = hex.DecodeString(publicKeyHex)
+	digest := sha3.New256()
+	_, err := digest.Write(messsageByte)
 	if err != nil {
-		fmt.Printf("public key parsing error: %v", err)
+		fmt.Printf("message hashing error: %v", err)
 		os.Exit(1)
 	}
-
-	signatureByte, err = hex.DecodeString(signatureHex)
-	if err != nil {
-		fmt.Printf("signature parsing error: %v", err)
-		os.Exit(1)
-	}
-}
-
-func useMessageRaw() {
-	messsageByte = []byte(messageRaw)
-}
-
-func useMessageHex() {
-	messsageByte, err = hex.DecodeString(messageHex)
-	if err != nil {
-		fmt.Printf("message parsing error: %v", err)
-		os.Exit(1)
-	}
-}
-
-func verifyNormally() bool {
-	var (
-		signatureRInt = new(big.Int)
-		signatureSInt = new(big.Int)
-	)
-
-	R, _ := signatureRInt.SetString(signatureRString, 10)
-	S, _ := signatureSInt.SetString(signatureSString, 10)
-	signatureRInt = R
-	signatureSInt = S
-
-	return ecdsa.Verify(&publicKey, messsageByte, signatureRInt, signatureSInt)
-}
-
-func verifyASN1() bool {
-	return ecdsa.VerifyASN1(&publicKey, messsageByte, signatureByte)
-}
-
-func loadPublicKeyFromPem(certificatePem string) {
-	// decode the key, assuming it's in PEM format
-	block, _ := pem.Decode([]byte(certificatePem))
-	if block == nil {
-		fmt.Printf("Failed to decode PEM public key")
-		os.Exit(1)
-	}
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		fmt.Printf("Failed to parse certificate: %v", err)
-		os.Exit(1)
-	}
-	pub := cert.PublicKey
-	switch pub := pub.(type) {
-	case *ecdsa.PublicKey:
-		publicKey = *pub
-	default:
-		fmt.Printf("Unsupported public key type")
-		os.Exit(1)
-	}
-}
-
-func loadPublicKeyFromDer(publicKeyBytes []byte) {
-	curve := elliptic.P384()
-	publicKey.Curve = curve
-	publicKey.X, publicKey.Y = elliptic.Unmarshal(curve, publicKeyBytes)
-}
-
-func verifyEidSignature() {
-	// loadPublicKeyFromPem(publicKeyPem)
-	loadPublicKeyFromDer(publicKeyBytes)
-
-	result := verifyNormally()
-	// result := verifyASN1()
-	fmt.Println("result     : ", result)
-	fmt.Println("public key : ", hex.EncodeToString(elliptic.Marshal(publicKey.Curve, publicKey.X, publicKey.Y)))
+	return digest.Sum([]byte{})
 }
 
 func testVerifyNIST384P() {
@@ -170,6 +64,15 @@ func testVerifyNIST384P() {
 	// privateKeyAdd := privateKey
 	// publicKeyAdd := publicKey
 
+	messsageByte := hashMessage(messageRaw)
+
+	// decoding signature from hex string to bytes
+	signatureByte, err := hex.DecodeString(signatureHex)
+	if err != nil {
+		fmt.Printf("signature parsing error: %v", err)
+		os.Exit(1)
+	}
+
 	signature, err := ecdsa.SignASN1(rand.Reader, privateKeyAdd, messsageByte)
 	if err != nil {
 		fmt.Printf("Signing error: %v", err)
@@ -184,10 +87,98 @@ func testVerifyNIST384P() {
 	fmt.Println("public key : ", hex.EncodeToString(elliptic.Marshal(publicKeyAdd.Curve, publicKeyAdd.X, publicKeyAdd.Y)))
 }
 
-func main() {
-	// useMessageRaw()
-	useMessageHex()
+func loadPublicKeyFromPem() (publicKey ecdsa.PublicKey) {
+	certificatePem := `
+-----BEGIN CERTIFICATE-----
+MIIDzjCCAzCgAwIBAgIQCRxwO6tzCWdc73UTenfjrDAKBggqhkjOPQQDBDBYMQsw
+CQYDVQQGEwJFRTEbMBkGA1UECgwSU0sgSUQgU29sdXRpb25zIEFTMRcwFQYDVQRh
+DA5OVFJFRS0xMDc0NzAxMzETMBEGA1UEAwwKRVNURUlEMjAxODAeFw0xOTA1MzAw
+NjE1NDdaFw0yNDA1MjkyMTU5NTlaMHcxCzAJBgNVBAYTAkVFMSYwJAYDVQQDDB1D
+QVBPRElFQ0ksUk9CRVJUTywzNzQwNjI1MDE2MDESMBAGA1UEBAwJQ0FQT0RJRUNJ
+MRAwDgYDVQQqDAdST0JFUlRPMRowGAYDVQQFExFQTk9FRS0zNzQwNjI1MDE2MDB2
+MBAGByqGSM49AgEGBSuBBAAiA2IABKzxa/lg5nl5k6f9CK1EZP3gt+7+VD0RlVLE
+0eeG3YUZA6/pJawUFM76rHQcUgD6ksXzejCodDD8WbtUP/doo8vJNFSHdLVkWywy
+CbKpKMHLe1LCu5c2kN3ffDSFhZB7J6OCAZ4wggGaMAkGA1UdEwQCMAAwDgYDVR0P
+AQH/BAQDAgZAMEgGA1UdIARBMD8wMgYLKwYBBAGDkSEBAQQwIzAhBggrBgEFBQcC
+ARYVaHR0cHM6Ly93d3cuc2suZWUvQ1BTMAkGBwQAi+xAAQIwHQYDVR0OBBYEFI3A
+VTKnMdqw1j/upmDPfzO1AQ//MIGKBggrBgEFBQcBAwR+MHwwCAYGBACORgEBMAgG
+BgQAjkYBBDATBgYEAI5GAQYwCQYHBACORgEGATBRBgYEAI5GAQUwRzBFFj9odHRw
+czovL3NrLmVlL2VuL3JlcG9zaXRvcnkvY29uZGl0aW9ucy1mb3ItdXNlLW9mLWNl
+cnRpZmljYXRlcy8TAkVOMB8GA1UdIwQYMBaAFNmscNtffr6U+KDkvkei0DStmioS
+MGYGCCsGAQUFBwEBBFowWDAnBggrBgEFBQcwAYYbaHR0cDovL2FpYS5zay5lZS9l
+c3RlaWQyMDE4MC0GCCsGAQUFBzAChiFodHRwOi8vYy5zay5lZS9lc3RlaWQyMDE4
+LmRlci5jcnQwCgYIKoZIzj0EAwQDgYsAMIGHAkIBICcDVSlZ2I/+A5SGrS1mNpQy
+W8Amz1EUslE5PkQ5kWlEId2jNfXTa48GiZYDE8sOBDu36xd+LH2N+EtJj2/SubAC
+QXsj+LaIjP1Cu3JccZ0+132dJxf3PhanZ4cmp2Q4Qmta0hQ7NlV0tl+MFFJASU0c
+vGGclxtDy+1uDwnqtDB5wYbg
+-----END CERTIFICATE-----`
 
+	// decode the key, assuming it's in PEM format
+	block, _ := pem.Decode([]byte(certificatePem))
+	if block == nil {
+		fmt.Printf("Failed to decode PEM public key")
+		os.Exit(1)
+	}
+	cert, err := x509.ParseCertificate(block.Bytes)
+	if err != nil {
+		fmt.Printf("Failed to parse certificate: %v", err)
+		os.Exit(1)
+	}
+	pub := cert.PublicKey
+	switch pub := pub.(type) {
+	case *ecdsa.PublicKey:
+		publicKey = *pub
+	default:
+		fmt.Printf("Unsupported public key type")
+		os.Exit(1)
+	}
+	return
+}
+
+func loadPublicKeyFromDer() (publicKey ecdsa.PublicKey) {
+	publicKeyBytes, err := hex.DecodeString(publicKeyHex)
+	if err != nil {
+		fmt.Printf("public key parsing error: %v", err)
+		os.Exit(1)
+	}
+	curve := elliptic.P384()
+	publicKey.Curve = curve
+	publicKey.X, publicKey.Y = elliptic.Unmarshal(curve, publicKeyBytes)
+	return publicKey
+}
+
+// source: https://github.com/warner/python-ecdsa/blob/master/src/ecdsa/util.py (sigdecode_string)
+// return: r, s, error
+func decodeSignatureNIST384RS(signature []byte) (*big.Int, *big.Int, error) {
+	// curveOrder := "39402006196394479212279040100143613805079739270465446667946905279627659399113263569398956308152294913554433653942643"
+	curveOrderLen := 48
+	if len(signature) != curveOrderLen*2 {
+		return nil, nil, errors.New(fmt.Sprintf("error signature length: %d", len(signature)))
+	}
+	rBytes := signature[:48]
+	sBytes := signature[48:]
+	r := new(big.Int).SetBytes(rBytes)
+	s := new(big.Int).SetBytes(sBytes)
+	return r, s, nil
+}
+
+func verifyEidSignature() {
+	publicKey := loadPublicKeyFromDer()
+	messsageByte := hashMessage(messageRaw)
+
+	// decoding signature from hex string to bytes
+	signatureByte, err := hex.DecodeString(signatureHex)
+	if err != nil {
+		fmt.Printf("signature parsing error: %v", err)
+		os.Exit(1)
+	}
+
+	r, s, _ := decodeSignatureNIST384RS(signatureByte)
+	result := ecdsa.Verify(&publicKey, messsageByte, r, s)
+	fmt.Println("result     : ", result)
+	fmt.Println("public key : ", hex.EncodeToString(elliptic.Marshal(publicKey.Curve, publicKey.X, publicKey.Y)))
+}
+
+func main() {
 	verifyEidSignature()
-	// testVerifyNIST384P()
 }
