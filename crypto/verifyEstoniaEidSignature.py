@@ -5,7 +5,7 @@
 # https://github.com/warner/python-ecdsa
 # https://cryptography.io/en/latest/
 
-from ecdsa import VerifyingKey, BadSignatureError
+from ecdsa import VerifyingKey, BadSignatureError, util
 
 from cryptography import x509
 from cryptography.hazmat.backends import default_backend
@@ -53,9 +53,14 @@ vk = VerifyingKey.from_der(bytes.fromhex(publicKeyHexString))
 sig = bytes.fromhex(signature)
 
 print(vk.curve)
+print(vk.to_string().hex())
 
 try:
     vk.verify(sig, message, hashfunc=hashlib.sha256)
-    print("good signature")
+    print("\nRESULT: good signature\n")
 except BadSignatureError:
-    print("BAD SIGNATURE")
+    print("\nRESULT: BAD SIGNATURE\n")
+
+r,s = util.sigdecode_string(sig,vk.curve.order)
+print('signature R: ',r)
+print('signature S: ',s)
